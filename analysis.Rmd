@@ -1,0 +1,191 @@
+---
+title: "Analyzing Star Wars Transcripts in R"
+author: "Greg Eastman"
+date: "4/15/2021"
+output: html_document
+always_allow_html: true
+---
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+library(tm)
+library(tidytext)
+library(textdata)
+library(ggplot2)
+library(quanteda)
+library(dplyr)
+library(wordcloud2)
+library(tidyr)
+library(topicmodels)
+library(readr)
+library(factoextra)
+source("D:/personal_projects/star_wars/functions.R")
+```
+
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+# Cleaning the data and putting into useable formats for text analysis in R
+
+path <- "D:/personal_projects/star_wars/transcripts"
+
+files_combined <- list.files(path, all.files = FALSE)
+
+setwd(path)
+
+combined <- Corpus(URISource(files_combined),readerControl = list(reader = readPlain))
+
+name_list <- get_names()
+cleaned <- clean_text(combined, name_list)
+
+dtm_total <- get_dtm(cleaned)
+
+token_total <- get_tokens(cleaned)
+```
+
+WORD CLOUD: 
+
+Using a word cloud just to get a visually appealing idea of the most common themes in the films.
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+t.h <- data.frame(token_total %>% count(word))
+cloud <- wordcloud2(t.h , minSize = 60, backgroundColor = "black", color = "random-light")
+cloud
+```
+
+LEXICAL DIVERSITY:
+
+We are going to see how complex the language is in the films.
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+total_tidy <- tidy(dtm_total)
+
+dfm_total <- total_tidy %>% cast_dfm(document, term, count)
+
+tstat_lexdiv <- textstat_lexdiv(dfm_total)
+plot(tstat_lexdiv$TTR, type = "l", xaxt = "n", xlab = "Film Number", ylab = "Lexical Diversity Score", main = "Lexical Diversity by Movie") + grid() + axis(1, at = seq_len(nrow(tstat_lexdiv))) 
+```
+
+
+
+
+
+CLUSTERING:
+
+We are going to see what films are considered "most similar" to the others. 
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+mat <- as.matrix(dtm_total)
+distMatrix <- dist(mat, method="euclidian")
+
+groups <- hclust(distMatrix,method="ward.D")
+plot(groups, cex=0.9, hang=-1)
+rect.hclust(groups, k=3)
+```
+
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+clustering.kmeans <- kmeans(distMatrix, 3, nstart = 10)
+fviz_cluster(clustering.kmeans, data = mat,
+             stand = TRUE,
+             palette = "Dark",
+             ggtheme = theme_bw())
+```
+
+
+
+
+
+
+Sentiment Analysis:
+
+We are going to look at the overall sentiment in the films broken down by the clusters found in the previous part. 
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+# Subsetting into the three different movies
+group_lucas <- cleaned[c(1, 2, 3, 5, 6, 7)] %>% DocumentTermMatrix() # Lucas Films
+group_disney <- cleaned[c(8,9)] %>% DocumentTermMatrix() # Non-Lucas Films
+group_original <- cleaned[4] %>% DocumentTermMatrix() # The original
+
+tidy_lucas <- tidy(group_lucas)
+tidy_disney <- tidy(group_disney)
+tidy_original <- tidy(group_original)
+
+```
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+sent_lucas <- sentiment_grabber(tidy_lucas)
+sent_disney <- sentiment_grabber(tidy_disney)
+sent_original <- sentiment_grabber(tidy_original)
+```
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+cat("Episodes 1, 2, 3, 5, 6, 7:")
+sent_lucas
+```
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+cat("Episode 4: ") 
+sent_original
+```
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+cat("Episode 8, 9: ") 
+sent_disney
+```
+
+Looking at the frequent word counts for episodes 1, 2, 3, 5, 6, 7.
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+head(tidy_lucas %>% arrange(desc(count)), 10) 
+```
+
+
+Looking at the frequent word counts for episode 4.
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+head(tidy_original %>% arrange(desc(count)), 10) 
+```
+
+
+Looking at the frequent word counts for episodes 8, 9.
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+head(tidy_disney %>% arrange(desc(count)), 10) 
+```
+
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+ep4 <- sent_original$x[2]/(sent_original$x[1] + sent_original$x[2])
+ep89 <- sent_disney$x[2]/(sent_disney$x[1] + sent_disney$x[2])
+ep123567 <- sent_lucas$x[2]/(sent_lucas$x[1] + sent_lucas$x[2])
+```
+
+Proportion of "good" terms in each cluster.
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+cat("Proportion of positivity for episodes 1, 2, 3, 5, 6, 7: ", ep123567)
+```
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+cat("Proportion of positivity for episodes 8,9: ", ep89)
+```
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+cat("Proportion of positivity for episode 4: ", ep4)
+```
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+sentiment <- c(ep123567, ep4, ep89)
+tempted <- c("Main Lucas Films", "Main Disney Films", "Original Film")
+sent <- data.frame("sentiment" = sentiment, "cluster" = tempted)
+sent
+```
+
+
+```{R, warning=FALSE, message=FALSE, echo=FALSE}
+ggplot(data=sent, aes(x = cluster, y = sentiment, color = cluster)) + geom_bar(stat = "identity", fill = "lightgrey") + labs(title="Plot of Sentiment per Group", x="Cluster", y = "Proportion of Positive Sentiment") + theme_classic()
+```
+
+
+
+
+
+
+DIRICHELET ANALYSIS:
+
+NOTE-- I removed the code and analysis here because the work led nowhere. The large number and frequency of made up words made it impossible to get any meaningful knowledge from it and there is no reason to clutter my file with more useless code and diagrams. 
+
