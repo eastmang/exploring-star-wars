@@ -8,7 +8,7 @@ question, what made these movies the massive success that they are? By having a 
 movies I hope to glean new insights about their success. Furthermore, fans often have polarized opinions as to what 
 films are better, this may help to give a more concrete reasoning for why some films may be liked more than others. 
 
-# Data and Models
+# Data and Results
 
 ---
 
@@ -31,13 +31,13 @@ functions script have all the code used for this work. Additionally, the visuals
 
 ---
 
-![wordcloud.png](images/wordcloud.png)
+![wordcloud](images/wordcloud.png)
 
-![Lexical Diversity.png](images/Lexical Diversity.png)
+![Lexical Diversity](images/Lexical Diversity.png)
 
-![cluster.png](images/cluster.png)
+![cluster](images/cluster.png)
 
-![Sentiment Plot.png](images/Sentiment Plot.png)
+![Sentiment Plot](images/Sentiment Plot.png)
 
 
 # References
