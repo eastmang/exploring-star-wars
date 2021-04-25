@@ -1,8 +1,8 @@
 ---
-title: "Analyzing Star Wars Transcripts in R"
+title: "Text Analysis: A Star Wars Story"
 author: "Greg Eastman"
 date: "4/15/2021"
-output: html_document
+output: pdf_document
 always_allow_html: true
 ---
 
